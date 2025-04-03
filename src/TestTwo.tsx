@@ -274,122 +274,13 @@ export default function TestTwo() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                variant="default"
-                onClick={() => {
-                  form.setValue("name", row.original.name);
-                  form.setValue("email", row.original.email);
-                  form.setValue("balance", row.original.balance);
-                  form.setValue(
-                    "registerAt",
-                    row.original.registerAt.split("T")[0]
-                  );
-                  form.setValue("active", row.original.active);
-                  form.setValue("id", row.original.id);
-                }}
-              >
-                <Pencil />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit User</DialogTitle>
-                <DialogDescription>
-                  Make changes to user here. Click save when done.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(updateUser)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input type="text" placeholder="Name" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="Email" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="balance"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Balance ($)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="Balance"
-                            min={0}
-                            step={0.01}
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="registerAt"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Register At</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            placeholder="Register At"
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="active"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormLabel>Active</FormLabel>
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter className="justify-between">
-                    <DialogClose asChild>
-                      <Button type="button" variant="secondary">
-                        Close
-                      </Button>
-                    </DialogClose>
-                    <Button type="submit">Save changes</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <EditButton
+            row={row}
+            form={form}
+            func={async (data) => {
+              await updateUser(data);
+            }}
+          />
           <DeleteButton
             row={row}
             table={table}
@@ -580,6 +471,128 @@ export default function TestTwo() {
     </div>
   );
 }
+
+const EditButton = ({
+  row,
+  form,
+  func,
+}: {
+  row: Row<User>;
+  form: ReturnType<typeof useForm<User>>;
+  func?: (data: Partial<User>) => Promise<void>;
+}) => {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="default"
+          onClick={() => {
+            form.setValue("name", row.original.name);
+            form.setValue("email", row.original.email);
+            form.setValue("balance", row.original.balance);
+            form.setValue("registerAt", row.original.registerAt.split("T")[0]);
+            form.setValue("active", row.original.active);
+            form.setValue("id", row.original.id);
+          }}
+        >
+          <Pencil />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>
+            Make changes to user here. Click save when done.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(func || (() => Promise.resolve()))}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input type="text" placeholder="Name" {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="Email" {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="balance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Balance ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Balance"
+                      min={0}
+                      step={0.01}
+                      {...field}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="registerAt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Register At</FormLabel>
+                  <FormControl>
+                    <Input type="date" placeholder="Register At" {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="active"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-2">
+                  <FormLabel>Active</FormLabel>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <DialogFooter className="justify-between">
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  Close
+                </Button>
+              </DialogClose>
+              <Button type="submit">Save changes</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const DeleteButton = ({
   row,

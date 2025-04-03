@@ -1,54 +1,33 @@
-# React + TypeScript + Vite
+# Bees Group Front End Developer Interview Test
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Introduction
+### Technologies I used for this test
+`ReactJS-Vite`
+`Shadcn`
+`TypeScript`
+`Tanstack/react-table`
+`react=hook=form`
+### Logic Test 🧠
+The `processWithDelay` function is designed to process an array of numbers one at a time, introducing a delay between each step.
 
-Currently, two official plugins are available:
+A default delay of 1 second is applied between each step & can update the delay time.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Handle input invalid errors.
 
-## Expanding the ESLint configuration
+Also handle cancel ongoing progress and implement a progress bar.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+#### App Development Test 🖥️
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+I use mockAPI for handling get, update, delete functions.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Display table with sorting/filtering/paging functions and show data correctly as required.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+I also implement dark-mode, change rows per page as well as infinite scroll.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## How to install
+`git clone https://github.com/gs4lthung/bees-group-fe-dev-interview.git`
+
+`npm i`
+
+`npm run dev`
+

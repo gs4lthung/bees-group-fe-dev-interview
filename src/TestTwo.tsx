@@ -1,5 +1,5 @@
 import axios from "axios";
-import { use, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -46,6 +46,34 @@ import {
   AlertDialogTrigger,
 } from "./components/ui/alert-dialog";
 import { Spinner } from "./components/ui/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./components/ui/tooltip";
+import { Badge } from "./components/ui/badge";
+import { ModeToggle } from "./components/ui/mode-toggle";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/ui/dialog";
+import { Input } from "./components/ui/input";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "./components/ui/form";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -57,23 +85,61 @@ interface User {
 }
 
 export default function TestTwo() {
+  const form = useForm<User>({
+    defaultValues: {
+      id: "",
+      name: "",
+      balance: 0,
+      email: "",
+      registerAt: new Date().toISOString(),
+      active: false,
+    },
+  });
   const [users, setUsers] = useState<User[]>([]);
   const [limit, setLimit] = useState(10);
   const [error, setError] = useState("");
+  const [isInfiniteScroll, setIsInfiniteScroll] = useState(false);
   const fetchUsers = async () => {
     await axios
       .get("https://67ed44004387d9117bbcfb13.mockapi.io/users")
-      .then((res) => setUsers(res.data))
+      .then((res) => {
+        setUsers(res.data);
+        toast.success("Users fetched successfully");
+      })
       .catch(() => {
         setError("Failed to fetch users");
+        toast.error("Failed to fetch users");
       });
   };
 
   const deleteUser = async (id: string) => {
-    await axios.delete(
-      `https://67ed44004387d9117bbcfb13.mockapi.io/users/${id}`
-    );
-    setUsers((prev) => prev.filter((user) => user.id !== id));
+    await axios
+      .delete(`https://67ed44004387d9117bbcfb13.mockapi.io/users/${id}`)
+      .then(() => {
+        setUsers((prev) => prev.filter((user) => user.id !== id));
+        toast.success("User deleted successfully");
+      })
+      .catch(() => {
+        setError("Failed to delete user");
+        toast.error("Failed to delete user");
+      });
+  };
+
+  const updateUser = async (data: Partial<User>) => {
+    await axios
+      .put(`https://67ed44004387d9117bbcfb13.mockapi.io/users/${data.id}`, data)
+      .then(() => {
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === data.id ? { ...user, ...data } : user
+          )
+        );
+        toast.success("User updated successfully");
+      })
+      .catch(() => {
+        setError("Failed to update user");
+        toast.error("Failed to update user");
+      });
   };
 
   useEffect(() => {
@@ -149,7 +215,12 @@ export default function TestTwo() {
         );
       },
       cell: ({ row }) => (
-        <div className="lowercase">{row.getValue("email")}</div>
+        <a
+          href={`mailto:${row.getValue("email")}`}
+          className="border-b-2 hover:border-black dark:hover:border-white"
+        >
+          {row.getValue("email")}
+        </a>
       ),
     },
     {
@@ -169,7 +240,20 @@ export default function TestTwo() {
         const formattedDate = new Date(row.getValue("registerAt"))
           .toISOString()
           .split("T")[0];
-        return <div className="lowercase">{formattedDate}</div>;
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>{formattedDate}</div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-sm">
+                  {new Date(row.getValue("registerAt")).toLocaleString()}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
       },
     },
     {
@@ -190,14 +274,122 @@ export default function TestTwo() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            onClick={() => {
-              console.log("Edit", row.getToggleSelectedHandler);
-            }}
-          >
-            <Pencil />
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="default"
+                onClick={() => {
+                  form.setValue("name", row.original.name);
+                  form.setValue("email", row.original.email);
+                  form.setValue("balance", row.original.balance);
+                  form.setValue(
+                    "registerAt",
+                    row.original.registerAt.split("T")[0]
+                  );
+                  form.setValue("active", row.original.active);
+                  form.setValue("id", row.original.id);
+                }}
+              >
+                <Pencil />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+                <DialogDescription>
+                  Make changes to user here. Click save when done.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(updateUser)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input type="text" placeholder="Name" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Email" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="balance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Balance ($)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Balance"
+                            min={0}
+                            step={0.01}
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="registerAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Register At</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            placeholder="Register At"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="active"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormLabel>Active</FormLabel>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter className="justify-between">
+                    <DialogClose asChild>
+                      <Button type="button" variant="secondary">
+                        Close
+                      </Button>
+                    </DialogClose>
+                    <Button type="submit">Save changes</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
           <DeleteButton
             row={row}
             table={table}
@@ -239,9 +431,32 @@ export default function TestTwo() {
     },
   });
 
+  const observerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (limit < users.length) return;
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting) {
+        console.log("Load more data");
+        setPagination((prev) => ({
+          ...prev,
+          pageSize: prev.pageSize + 20,
+        }));
+      }
+    });
+
+    const current = observerRef.current;
+    if (current) observer.observe(current);
+
+    return () => {
+      if (current) observer.unobserve(current);
+    };
+  }, [limit]);
+
   return (
     <div className="flex flex-col p-4 gap-4">
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
@@ -254,6 +469,17 @@ export default function TestTwo() {
             <DropdownMenuRadioGroup
               value={limit.toString()}
               onValueChange={(value) => {
+                if (value === "Infinite Scroll") {
+                  setIsInfiniteScroll(true);
+                  setLimit(users.length);
+                  setPagination((prev) => ({
+                    ...prev,
+                    pageSize: (prev.pageIndex + 1) * 20,
+                  }));
+                  table.resetRowSelection();
+                  return;
+                }
+                setIsInfiniteScroll(false);
                 setLimit(Number(value));
                 setPagination((prev) => ({
                   ...prev,
@@ -266,6 +492,9 @@ export default function TestTwo() {
               <DropdownMenuRadioItem value="10">10</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="15">15</DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="20">20</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="Infinite Scroll">
+                <Badge variant="default">Infinite Scroll</Badge>
+              </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -318,25 +547,35 @@ export default function TestTwo() {
               </TableCell>
             </TableRow>
           )}
+          {isInfiniteScroll && pagination.pageSize < users.length && (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="text-center">
+                <div ref={observerRef}>Loading more...</div>
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+      <div className="flex items-center justify-between space-x-2 p-4">
+        {table.getFilteredRowModel().rows.length} results
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage() || isInfiniteScroll}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage() || isInfiniteScroll}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

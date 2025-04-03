@@ -3,7 +3,9 @@ import { use, useEffect, useState } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
+  Row,
   SortingState,
+  Table as TanstackTable,
   VisibilityState,
   flexRender,
   getCoreRowModel,
@@ -26,13 +28,25 @@ import { Button } from "./components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./components/ui/alert-dialog";
+import { Spinner } from "./components/ui/spinner";
+
 interface User {
   id: string;
   name: string;
@@ -45,11 +59,21 @@ interface User {
 export default function TestTwo() {
   const [users, setUsers] = useState<User[]>([]);
   const [limit, setLimit] = useState(10);
+  const [error, setError] = useState("");
   const fetchUsers = async () => {
-    const response = await axios.get(
-      "https://67ed44004387d9117bbcfb13.mockapi.io/users"
+    await axios
+      .get("https://67ed44004387d9117bbcfb13.mockapi.io/users")
+      .then((res) => setUsers(res.data))
+      .catch(() => {
+        setError("Failed to fetch users");
+      });
+  };
+
+  const deleteUser = async (id: string) => {
+    await axios.delete(
+      `https://67ed44004387d9117bbcfb13.mockapi.io/users/${id}`
     );
-    setUsers(response.data);
+    setUsers((prev) => prev.filter((user) => user.id !== id));
   };
 
   useEffect(() => {
@@ -92,9 +116,7 @@ export default function TestTwo() {
           </Button>
         );
       },
-      cell: ({ row }) => (
-        <div className="lowercase">{row.getValue("name")}</div>
-      ),
+      cell: ({ row }) => <div>{row.getValue("name")}</div>,
     },
     {
       accessorKey: "balance",
@@ -168,12 +190,21 @@ export default function TestTwo() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button variant="default">
+          <Button
+            variant="default"
+            onClick={() => {
+              console.log("Edit", row.getToggleSelectedHandler);
+            }}
+          >
             <Pencil />
           </Button>
-          <Button variant="destructive">
-            <Trash />
-          </Button>
+          <DeleteButton
+            row={row}
+            table={table}
+            func={async (id) => {
+              await deleteUser(id);
+            }}
+          />
         </div>
       ),
     },
@@ -228,6 +259,7 @@ export default function TestTwo() {
                   ...prev,
                   pageSize: Number(value),
                 }));
+                table.resetRowSelection();
               }}
             >
               <DropdownMenuRadioItem value="5">5</DropdownMenuRadioItem>
@@ -274,7 +306,15 @@ export default function TestTwo() {
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
+                <div className="flex flex-col items-center gap-3">
+                  {error ? (
+                    <div className="bg-red-300 p-2 rounded-md text-red-800">
+                      {error}
+                    </div>
+                  ) : (
+                    <Spinner className="mx-auto">Loading...</Spinner>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           )}
@@ -301,3 +341,58 @@ export default function TestTwo() {
     </div>
   );
 }
+
+const DeleteButton = ({
+  row,
+  table,
+  func,
+}: {
+  row: Row<User>;
+  table: TanstackTable<User>;
+  func?: (id: string) => Promise<void>;
+}) => {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive" disabled={!row.getIsSelected()}>
+          <Trash />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete from our
+            records.
+            <br />
+            {row.getIsSelected() && (
+              <span className="text-red-500">
+                {table.getSelectedRowModel().rows.length} users will be deleted.
+              </span>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={async () => {
+              const selectedRows = table.getSelectedRowModel().rows;
+              if (selectedRows.length === 0) {
+                return;
+              }
+              const selectedRowIds = selectedRows.map((row) => row.original.id);
+              selectedRowIds.forEach(async (id) => {
+                if (func) {
+                  await func(id);
+                }
+              });
+              table.resetRowSelection();
+            }}
+          >
+            Continue
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
